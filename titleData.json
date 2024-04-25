@@ -1,0 +1,46 @@
+[{
+    "title":"My Mashed potatoes",
+    "description":"Semi-ok decent mashed potatoes.  Won't make you gag",
+    "review": {
+        "rating": 2.5,
+        "reviews": 27
+    },
+    "imageUrl": "https://www.slyhkitchen.com/wp-content/uploads/2014/10/Mashed-Potatoes.jpg"
+},
+{
+    "title":"Creamy Mashed potatoes",
+    "description":"Good  mashed potatoes but missing cheese",
+    "review": {
+        "rating": 4.0,
+        "reviews": 30
+    },
+    "imageUrl": "https://www.slyhkitchen.com/wp-content/uploads/2014/10/Mashed-Potatoes.jpg"
+},
+{
+    "title":"Cheesy Mashed potatoes",
+    "description":"Delicious mashed potatoes.",
+    "review": {
+        "rating": 4.8,
+        "reviews": 25
+    },
+    "imageUrl": "https://www.yellowblissroad.com/wp-content/uploads/2019/09/Cheesy-Mashed-Potatoes.jpg"
+},
+{
+    "title":"Lumpy Mashed potatoes",
+    "description":"These are really bad mashed potatoes.  Will make you gag",
+    "review": {
+        "rating": 1.8,
+        "reviews": 20
+    },
+    "imageUrl": "https://www.slyhkitchen.com/wp-content/uploads/2014/10/Mashed-Potatoes.jpg"
+},
+{
+    "title":"Baked potatoes",
+    "description":"These are not mashed.",
+    "review": {
+        "rating": 3.5,
+        "reviews": 50
+    },
+    "imageUrl": "https://www.cookingclassy.com/wp-content/uploads/2018/09/baked-potatoes-33.jpg"
+}
+]

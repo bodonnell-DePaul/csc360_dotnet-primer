@@ -1,0 +1,13 @@
+@dotnet_primer_HostAddress = http://localhost:5172
+
+GET {{dotnet_primer_HostAddress}}/weatherforecast/
+Accept: application/json
+###
+
+GET {{dotnet_primer_HostAddress}}/recipes/
+Accept: text/plain
+###
+
+GET {{dotnet_primer_HostAddress}}/recipeTitles/
+Accept: application/json
+###
