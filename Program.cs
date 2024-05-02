@@ -37,6 +37,7 @@ var summaries = new[]
 
 app.MapGet("/weatherforecast", () =>
 {
+    Console.WriteLine("Executing weather forecast: " + DateTime.Now.ToShortTimeString());
     var forecast =  Enumerable.Range(1, 5).Select(index =>
         new WeatherForecast
         (
@@ -50,22 +51,40 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
-
 app.MapGet("/recipes", () => {
+    Console.WriteLine("Executing Hello World: " + DateTime.Now.ToShortTimeString());
     return "Hello World!";
 }).WithName("HelloWorld").WithOpenApi();
 
 app.MapGet("/recipeTitles", () => {
+    Console.WriteLine("Executing recipeTitles: " + DateTime.Now.ToShortTimeString());
     var options = new JsonSerializerOptions
     {
         PropertyNameCaseInsensitive = true
     };
-    string jsonString = File.ReadAllText("titleData.json");
+    string jsonString = File.ReadAllText("recipeTitleData.json");
     RecipeTitle[]? titles = JsonSerializer.Deserialize<RecipeTitle[]>(jsonString, options);
     return titles;
 
 }).WithName("GetRecipeTitles").WithOpenApi();
 
+app.MapGet("/recipeIngredients/{repcipeTitle}", (string recipeTitle) => {
+
+    Console.WriteLine("Executing recipeIngredients: " + DateTime.Now.ToShortTimeString());
+    
+    var options = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true
+
+    };
+    string jsonString = File.ReadAllText("recipeIngredientsData.json");
+    RecipeIngredients[]? ingredients = JsonSerializer.Deserialize<RecipeIngredients[]>(jsonString, options);
+
+    List<RecipeIngredients> retVal = ingredients.Where(item => item.RecipeTitle.ToLower() == recipeTitle.ToLower()).ToList();
+    return Results.Ok(retVal);
+
+
+}).WithName("GetRecipeIngredients").WithOpenApi();
 
 app.Run();
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

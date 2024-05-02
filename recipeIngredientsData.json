@@ -1,0 +1,25 @@
+[
+    { "recipeTitle": "My Mashed potatoes", "name": "3 potatoes, cut into 1/2 pieces", "prepared": false },
+    { "recipeTitle": "My Mashed potatoes","name": "4 Tbsp butter", "prepared": false },
+    { "recipeTitle": "My Mashed potatoes","name": "1/8 cup heavy cream", "prepared": false },
+    { "recipeTitle": "My Mashed potatoes","name": "Salt", "prepared": true },
+    { "recipeTitle": "My Mashed potatoes","name": "Pepper", "prepared": true },
+    { "recipeTitle": "Cheesy Mashed potatoes", "name": "3 potatoes, cut into 1/2 pieces", "prepared": false },
+    { "recipeTitle": "Cheesy Mashed potatoes","name": "4 Tbsp butter", "prepared": false },
+    { "recipeTitle": "Cheesy Mashed potatoes","name": "1/8 cup heavy cream", "prepared": false },
+    { "recipeTitle": "Cheesy Mashed potatoes","name": "2 cups shredded cheddar cheese", "prepared": false },
+    { "recipeTitle": "Cheesy Mashed potatoes","name": "Salt", "prepared": true },
+    { "recipeTitle": "Cheesy Mashed potatoes","name": "Pepper", "prepared": true },
+    { "recipeTitle": "Lumpy Mashed potatoes", "name": "3 potatoes, cut into 1/2 pieces", "prepared": false },
+    { "recipeTitle": "Lumpy Mashed potatoes","name": "4 Tbsp butter", "prepared": false },
+    { "recipeTitle": "Lumpy Mashed potatoes","name": "Salt", "prepared": true },
+    { "recipeTitle": "Lumpy Mashed potatoes","name": "Pepper", "prepared": true },
+    { "recipeTitle": "Creamy Mashed potatoes", "name": "3 potatoes, cut into 1/2 pieces", "prepared": false },
+    { "recipeTitle": "Creamy Mashed potatoes","name": "4 Tbsp butter", "prepared": false },
+    { "recipeTitle": "Creamy Mashed potatoes","name": "1 cup heavy cream", "prepared": false },
+    { "recipeTitle": "Creamy Mashed potatoes","name": "Salt", "prepared": true },
+    { "recipeTitle": "Creamy Mashed potatoes","name": "Pepper", "prepared": true }
+]
+
+
+

@@ -11,3 +11,6 @@ Accept: text/plain
 GET {{dotnet_primer_HostAddress}}/recipeTitles/
 Accept: application/json
 ###
+
+GET {{dotnet_primer_HostAddress}}/recipeIngredients/{repcipeTitle}?recipeTitle=Creamy%20Mashed%20potatoes'
+Accept: application/json
