@@ -1,5 +1,8 @@
+using System.Linq;
 using System.Text.Json;
+
 using dotnet_primer;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +54,64 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
+app.MapGet("/initialize", () => {
+
+    var options = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true
+    };
+    string titleJson = File.ReadAllText("recipeTitleData.json");
+    RecipeTitle[]? titles = JsonSerializer.Deserialize<RecipeTitle[]>(titleJson, options);
+
+    string ingredientJson = File.ReadAllText("recipeIngredientsData.json");
+    RecipeIngredients[]? ingredients = JsonSerializer.Deserialize<RecipeIngredients[]>(ingredientJson, options);
+
+    //Adding new data to tables
+    using (var context = new RecipeContext())
+    {
+        //Create Recipe Titles
+        foreach (var title in titles)
+        {
+            context.RecipeTitles.Add(title);
+        }
+
+        context.SaveChanges();
+        
+
+        //Loop through titles and assign id to recipe review
+        List<RecipeTitle> fromdb = context.RecipeTitles.ToList();
+        foreach(var item in fromdb)
+        {
+            //updating recipeReview to have the recipeTItle id association
+            foreach(var review in context.RecipeReviews.ToList())
+            {
+                if(review.Id == item.Id)
+                {
+                    review.RecipeId = item.Id;
+                    item.Review = review;
+                    break;
+                }
+                continue;
+            }
+
+            //updating ingredients to have recipeTitle id association
+            //RecipeTitle r = context.RecipeTitles.FirstOrDefault(rt => rt.Title == item.Title);
+            List<RecipeIngredients> matched = ingredients.Where(ingredient => ingredient.RecipeTitle.ToLower() == item.Title.ToLower()).ToList();
+            foreach (var ingredient in matched)
+            {
+                ingredient.RecipeId = item.Id;
+                context.RecipeIngredients.Add(ingredient);
+            }
+
+            
+        }
+        context.SaveChanges();
+        context.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
+    }
+    
+}).WithName("Init").WithOpenApi();
+
+
 app.MapGet("/recipes", () => {
     Console.WriteLine("Executing Hello World: " + DateTime.Now.ToShortTimeString());
     return "Hello World!";
@@ -58,31 +119,25 @@ app.MapGet("/recipes", () => {
 
 app.MapGet("/recipeTitles", () => {
     Console.WriteLine("Executing recipeTitles: " + DateTime.Now.ToShortTimeString());
-    var options = new JsonSerializerOptions
+    
+    using(var context = new RecipeContext())
     {
-        PropertyNameCaseInsensitive = true
-    };
-    string jsonString = File.ReadAllText("recipeTitleData.json");
-    RecipeTitle[]? titles = JsonSerializer.Deserialize<RecipeTitle[]>(jsonString, options);
-    return titles;
+        var titles = context.RecipeTitles.ToList();
+        return titles;
+    }
 
 }).WithName("GetRecipeTitles").WithOpenApi();
 
 app.MapGet("/recipeIngredients/{repcipeTitle}", (string recipeTitle) => {
 
     Console.WriteLine("Executing recipeIngredients: " + DateTime.Now.ToShortTimeString());
-    
-    var options = new JsonSerializerOptions
+
+    using(var context = new RecipeContext())
     {
-        PropertyNameCaseInsensitive = true
-
-    };
-    string jsonString = File.ReadAllText("recipeIngredientsData.json");
-    RecipeIngredients[]? ingredients = JsonSerializer.Deserialize<RecipeIngredients[]>(jsonString, options);
-
-    List<RecipeIngredients> retVal = ingredients.Where(item => item.RecipeTitle.ToLower() == recipeTitle.ToLower()).ToList();
-    return Results.Ok(retVal);
-
+        var ingredients = context.RecipeIngredients.Where(item => item.RecipeTitle.ToLower() == recipeTitle.ToLower()).ToList();
+        return Results.Ok(ingredients);
+    }
+    //List<RecipeIngredients> retVal = ingredients.Where(item => item.RecipeTitle.ToLower() == recipeTitle.ToLower()).ToList();
 
 }).WithName("GetRecipeIngredients").WithOpenApi();
 
