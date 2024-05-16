@@ -2,7 +2,10 @@ using System.Linq;
 using System.Text.Json;
 
 using dotnet_primer;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,10 +19,41 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod();
     });
 });
+
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication("BasicAuthentication")
+    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("basic", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "basic",
+        In = ParameterLocation.Header,
+        Description = "Basic Authorization header using the Bearer scheme."
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "basic"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
 
 var app = builder.Build();
 
@@ -30,6 +64,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAllOrigins");
@@ -111,7 +148,6 @@ app.MapGet("/initialize", () => {
     
 }).WithName("Init").WithOpenApi();
 
-
 app.MapGet("/recipes", () => {
     Console.WriteLine("Executing Hello World: " + DateTime.Now.ToShortTimeString());
     return "Hello World!";
@@ -140,6 +176,44 @@ app.MapGet("/recipeIngredients/{repcipeTitle}", (string recipeTitle) => {
     //List<RecipeIngredients> retVal = ingredients.Where(item => item.RecipeTitle.ToLower() == recipeTitle.ToLower()).ToList();
 
 }).WithName("GetRecipeIngredients").WithOpenApi();
+
+app.MapPost("/recipeTitles", (RecipeTitle title) => {
+    Console.WriteLine("Executing recipeTitles: " + DateTime.Now.ToShortTimeString());
+    using(var context = new RecipeContext())
+    {
+        context.RecipeTitles.Add(title);
+        context.SaveChanges();
+
+        if(title.Review == null)
+        {
+            title.Review = new RecipeReview(title.Id);
+        }
+        else{
+            RecipeReview n = context.RecipeReviews.ToList().Last();
+            n.RecipeId = title.Id;
+            n.Rating = title.Review.Rating;
+            n.Reviews = title.Review.Reviews;
+            title.Review = n;
+        }
+        context.RecipeReviews.Add(title.Review);
+        context.SaveChanges();
+    }
+
+
+    return Results.Created($"/recipeTitles/{title.Id}", title);
+}).WithName("PostRecipeTitles").WithOpenApi().RequireAuthorization(new AuthorizeAttribute() {AuthenticationSchemes="BasicAuthentication"});
+
+app.MapPost("/recipeIngredients", (RecipeIngredients ingredient) => {
+    Console.WriteLine("Executing recipeIngredients: " + DateTime.Now.ToShortTimeString());
+    using(var context = new RecipeContext())
+    {
+        context.RecipeIngredients.Add(ingredient);
+        context.SaveChanges();
+    }
+    return Results.Created($"/recipeIngredients/{ingredient.Id}", ingredient);
+}).WithName("PostRecipeIngredients").WithOpenApi();
+
+//app.MapPost("/authenticate", {}).WithName("Login").WithOpenApi().RequireAuthorization(new AuthorizeAttribute() {AuthenticationSchemes="BasicAuthentication"});
 
 app.Run();
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

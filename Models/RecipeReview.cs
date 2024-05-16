@@ -8,7 +8,7 @@ public class RecipeReview
 
     public RecipeReview(int recipeId)
     {  
-        recipeId = RecipeId;
+        this.RecipeId = recipeId;
 
     }
 }

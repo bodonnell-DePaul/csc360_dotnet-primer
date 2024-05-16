@@ -8,8 +8,17 @@ public class RecipeTitle
     public RecipeReview? Review { get; set;}   
     public string? ImageUrl {get; set;}
 
-    public RecipeTitle(){
-        this.Title = "My Recipe";
+    public RecipeTitle(int id = -1, string title = "My Recipe", string? description = null, string? imageUrl = null){
+        this.Title = title;
+        this.Description = description;
+        this.Review = null;
+        this.ImageUrl = imageUrl;
+
+        if(id < 0){
+            this.Id = Random.Shared.Next(1000, 9999);
+        }
+
+
         
     }
 }
