@@ -91,7 +91,31 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
+app.MapPost("/newUser", (Login newUser) =>{
+    using(var context = new LoginContext())
+    {
+        context.Logins.Add(newUser);
+        context.SaveChanges();
+        context.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
+    }
+    return Results.Created($"/newUser/{newUser.Id}", newUser);
+}).WithName("PostLogin").WithOpenApi();
+
+
+
 app.MapGet("/initialize", () => {
+
+    using (var context = new RecipeContext())
+    {
+        context.Database.EnsureDeleted();
+        context.Database.EnsureCreated();
+    }
+
+    using (var loginContext = new LoginContext())
+    {
+        loginContext.Database.EnsureDeleted();
+        loginContext.Database.EnsureCreated();
+    }
 
     var options = new JsonSerializerOptions
     {
@@ -142,8 +166,17 @@ app.MapGet("/initialize", () => {
 
             
         }
+
         context.SaveChanges();
         context.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
+    }
+
+    using(var loginContext = new LoginContext())
+    {
+        Login starter = new Login("brian", "password");
+        loginContext.Logins.Add(starter);
+        loginContext.SaveChanges();
+        loginContext.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
     }
     
 }).WithName("Init").WithOpenApi();
@@ -213,7 +246,10 @@ app.MapPost("/recipeIngredients", (RecipeIngredients ingredient) => {
     return Results.Created($"/recipeIngredients/{ingredient.Id}", ingredient);
 }).WithName("PostRecipeIngredients").WithOpenApi();
 
-//app.MapPost("/authenticate", {}).WithName("Login").WithOpenApi().RequireAuthorization(new AuthorizeAttribute() {AuthenticationSchemes="BasicAuthentication"});
+app.MapPost("/login", (Login login) => {
+    Console.WriteLine("Executing login: " + DateTime.Now.ToShortTimeString());
+    //return Results.Ok(user);
+}).WithName("Login").WithOpenApi().RequireAuthorization(new AuthorizeAttribute() {AuthenticationSchemes="BasicAuthentication"});
 
 app.Run();
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
