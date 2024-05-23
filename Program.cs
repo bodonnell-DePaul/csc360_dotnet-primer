@@ -230,6 +230,7 @@ app.MapPost("/recipeTitles", (RecipeTitle title) => {
         }
         context.RecipeReviews.Add(title.Review);
         context.SaveChanges();
+        context.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
     }
 
 
@@ -242,13 +243,21 @@ app.MapPost("/recipeIngredients", (RecipeIngredients ingredient) => {
     {
         context.RecipeIngredients.Add(ingredient);
         context.SaveChanges();
+        context.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
     }
     return Results.Created($"/recipeIngredients/{ingredient.Id}", ingredient);
 }).WithName("PostRecipeIngredients").WithOpenApi();
 
-app.MapPost("/login", (Login login) => {
+app.MapPost("/login", (Login authenticatedUser) => {
     Console.WriteLine("Executing login: " + DateTime.Now.ToShortTimeString());
-    //return Results.Ok(user);
+    using(var context = new LoginContext())
+    {
+        var user = context.Logins.FirstOrDefault(l => l.Username == authenticatedUser.Username);
+        if(user == null){
+            return Results.NotFound();
+        }
+        return Results.Ok(user);
+    }
 }).WithName("Login").WithOpenApi().RequireAuthorization(new AuthorizeAttribute() {AuthenticationSchemes="BasicAuthentication"});
 
 app.Run();
