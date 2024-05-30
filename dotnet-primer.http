@@ -1,4 +1,5 @@
-@dotnet_primer_HostAddress = http://localhost:5172
+#http://localhost:5172
+@dotnet_primer_HostAddress = https://csc360-backend.azurewebsites.net
 
 GET {{dotnet_primer_HostAddress}}/weatherforecast/
 Accept: application/json

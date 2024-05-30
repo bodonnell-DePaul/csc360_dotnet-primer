@@ -340,6 +340,9 @@ app.MapPost("/login", (Login authenticatedUser) => {
     }
 }).WithName("Login").WithOpenApi().RequireAuthorization(new AuthorizeAttribute() {AuthenticationSchemes="BasicAuthentication"});
 
+app.UseStaticFiles();
+
+app.MapFallbackToFile("index.html");
 app.Run();
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
