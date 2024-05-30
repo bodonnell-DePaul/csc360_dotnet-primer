@@ -2,13 +2,36 @@ using System.Linq;
 using System.Text.Json;
 
 using dotnet_primer;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
+Action<ApplicationInsightsServiceOptions> configureAppInsights = (options) =>
+{
+    options.InstrumentationKey = builder.Configuration["APPINSIGHTS_INSTRUMENTATIONKEY"];
+    options.EnableAdaptiveSampling = false;
+    options.EnableQuickPulseMetricStream = true;
+    options.EnableHeartbeat = true;
+    options.EnablePerformanceCounterCollectionModule = true;
+    options.EnableDependencyTrackingTelemetryModule = true;
+    options.EnableAppServicesHeartbeatTelemetryModule = true;
+    options.EnableRequestTrackingTelemetryModule = true;
+    options.EnableEventCounterCollectionModule = true;
+    options.EnableAzureInstanceMetadataTelemetryModule = true;
+    options.EnableAppServicesHeartbeatTelemetryModule = true;
+    options.EnablePerformanceCounterCollectionModule = true;
+    options.EnableQuickPulseMetricStream = true;
+    options.EnableAdaptiveSampling = true;
+    options.EnableHeartbeat = true;
+};
+builder.Services.AddApplicationInsightsTelemetry(configureAppInsights);//(builder.Configuration["APPINSIGHTS_CONNECTIONSTRING"]);
+//builder.Services.AddSingleton<TelemetryClient>();
 builder.Services.AddCors(options => 
 {
     options.AddPolicy("AllowAllOrigins",
@@ -19,6 +42,9 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod();
     });
 });
+var logger = LoggerFactory.Create(builder => builder.AddApplicationInsights()).CreateLogger<Program>();
+var telemetryClient = builder.Services.BuildServiceProvider().GetService<TelemetryClient>();
+
 
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication("BasicAuthentication")
@@ -70,6 +96,8 @@ app.UseAuthorization();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAllOrigins");
+
+telemetryClient.TrackTrace("Starting Application");
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
@@ -92,12 +120,26 @@ app.MapGet("/weatherforecast", () =>
 .WithOpenApi();
 
 app.MapPost("/newUser", (Login newUser) =>{
-    using(var context = new LoginContext())
-    {
-        context.Logins.Add(newUser);
-        context.SaveChanges();
-        context.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
+    logger.LogTrace("Executing newUser: " + DateTime.Now.ToShortTimeString());
+    telemetryClient.TrackTrace("Executing newUser: " + DateTime.Now.ToShortTimeString());
+    try{
+        using(var context = new LoginContext())
+        {
+            context.Logins.Add(newUser);
+            context.SaveChanges();
+            context.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
+        }
     }
+    catch(Exception e)
+    {
+        logger.LogError(e.Message);
+        telemetryClient.TrackException(e);
+        telemetryClient.Flush();
+        return Results.BadRequest(e.Message);
+        
+    }
+    logger.LogTrace("Finished newUser: " + DateTime.Now.ToShortTimeString());
+    telemetryClient.Flush();
     return Results.Created($"/newUser/{newUser.Id}", newUser);
 }).WithName("PostLogin").WithOpenApi();
 
@@ -105,80 +147,118 @@ app.MapPost("/newUser", (Login newUser) =>{
 
 app.MapGet("/initialize", () => {
 
-    using (var context = new RecipeContext())
+    logger.LogTrace("Executing Initialize: " + DateTime.Now.ToShortTimeString());
+    telemetryClient.TrackTrace("Executing Initialize: " + DateTime.Now.ToShortTimeString());
+    try{
+        using (var context = new RecipeContext())
+        {
+            context.Database.EnsureDeleted();
+            context.Database.EnsureCreated();
+        }
+    }
+    catch(Exception e)
     {
-        context.Database.EnsureDeleted();
-        context.Database.EnsureCreated();
+        telemetryClient.TrackException(e);
+        logger.LogError(e.Message);
     }
 
-    using (var loginContext = new LoginContext())
-    {
-        loginContext.Database.EnsureDeleted();
-        loginContext.Database.EnsureCreated();
-    }
 
     var options = new JsonSerializerOptions
     {
         PropertyNameCaseInsensitive = true
     };
-    string titleJson = File.ReadAllText("recipeTitleData.json");
-    RecipeTitle[]? titles = JsonSerializer.Deserialize<RecipeTitle[]>(titleJson, options);
 
-    string ingredientJson = File.ReadAllText("recipeIngredientsData.json");
-    RecipeIngredients[]? ingredients = JsonSerializer.Deserialize<RecipeIngredients[]>(ingredientJson, options);
-
-    //Adding new data to tables
-    using (var context = new RecipeContext())
+    string titleJson = String.Empty;
+    RecipeTitle[]? titles = null;
+    try
     {
-        //Create Recipe Titles
-        foreach (var title in titles)
-        {
-            context.RecipeTitles.Add(title);
-        }
+        logger.LogTrace("Reading recipeTitlesData.json: " + DateTime.Now.ToShortTimeString());
+        telemetryClient.TrackTrace("Reading recipeTitleData.json: " + DateTime.Now.ToShortTimeString());
+        titleJson = File.ReadAllText("recipeTitleData.json");
+        titles = JsonSerializer.Deserialize<RecipeTitle[]>(titleJson, options);
+    }
+    catch (Exception e)
+    {
+        logger.LogError(e.Message);
+        telemetryClient.TrackException(e);
+    }
 
-        context.SaveChanges();
-        
-
-        //Loop through titles and assign id to recipe review
-        List<RecipeTitle> fromdb = context.RecipeTitles.ToList();
-        foreach(var item in fromdb)
+    try
+    {
+        logger.LogTrace("Reading recipeIngredientsData.json: " + DateTime.Now.ToShortTimeString());
+        telemetryClient.TrackTrace("Reading recipeIngredientsData.json: " + DateTime.Now.ToShortTimeString());
+        string ingredientJson = File.ReadAllText("recipeIngredientsData.json");
+        RecipeIngredients[]? ingredients = JsonSerializer.Deserialize<RecipeIngredients[]>(ingredientJson, options);
+        using (var context = new RecipeContext())
         {
-            //updating recipeReview to have the recipeTItle id association
-            foreach(var review in context.RecipeReviews.ToList())
+            logger.LogTrace("Createing titles.json: " + DateTime.Now.ToShortTimeString());
+            telemetryClient.TrackTrace("Creating titles.json: " + DateTime.Now.ToShortTimeString());
+            foreach (var title in titles)
             {
-                if(review.Id == item.Id)
+                context.RecipeTitles.Add(title);
+            }
+
+            context.SaveChanges();
+            //Loop through titles and assign id to recipe review
+            List<RecipeTitle> fromdb = context.RecipeTitles.ToList();
+            foreach(var item in fromdb)
+            {
+                logger.LogTrace("Attaching reviews to recipes " + DateTime.Now.ToShortTimeString());
+                telemetryClient.TrackTrace("Attaching reviews to recipes " + DateTime.Now.ToShortTimeString());
+                //updating recipeReview to have the recipeTItle id association
+                foreach(var review in context.RecipeReviews.ToList())
                 {
-                    review.RecipeId = item.Id;
-                    item.Review = review;
-                    break;
+                    if(review.Id == item.Id)
+                    {
+                        review.RecipeId = item.Id;
+                        item.Review = review;
+                        break;
+                    }
+                    continue;
                 }
-                continue;
+
+                //updating ingredients to have recipeTitle id association
+                //RecipeTitle r = context.RecipeTitles.FirstOrDefault(rt => rt.Title == item.Title);
+                List<RecipeIngredients> matched = ingredients.Where(ingredient => ingredient.RecipeTitle.ToLower() == item.Title.ToLower()).ToList();
+                logger.LogTrace("Attaching ingredients to recipes " + DateTime.Now.ToShortTimeString());
+                telemetryClient.TrackTrace("Attaching ingredients to recipes " + DateTime.Now.ToShortTimeString());
+                foreach (var ingredient in matched)
+                {
+                    ingredient.RecipeId = item.Id;
+                    context.RecipeIngredients.Add(ingredient);
+                }
+
+                
             }
 
-            //updating ingredients to have recipeTitle id association
-            //RecipeTitle r = context.RecipeTitles.FirstOrDefault(rt => rt.Title == item.Title);
-            List<RecipeIngredients> matched = ingredients.Where(ingredient => ingredient.RecipeTitle.ToLower() == item.Title.ToLower()).ToList();
-            foreach (var ingredient in matched)
-            {
-                ingredient.RecipeId = item.Id;
-                context.RecipeIngredients.Add(ingredient);
-            }
-
+            context.SaveChanges();
+            context.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
             
         }
-
-        context.SaveChanges();
-        context.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
     }
-
-    using(var loginContext = new LoginContext())
+    catch (Exception e)
     {
-        Login starter = new Login("brian", "password");
-        loginContext.Logins.Add(starter);
-        loginContext.SaveChanges();
-        loginContext.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
+        logger.LogError(e.Message);
+        telemetryClient.TrackException(e);
     }
-    
+
+    try{
+        logger.LogTrace("Creating default user/pass: " + DateTime.Now.ToShortTimeString());
+        telemetryClient.TrackTrace("Creating default user/pass: " + DateTime.Now.ToShortTimeString());
+        using(var loginContext = new LoginContext())
+        {
+            Login starter = new Login("brian", "password");
+            loginContext.Logins.Add(starter);
+            loginContext.SaveChanges();
+            loginContext.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint;");
+        }
+    }
+    catch(Exception e)
+    {
+        logger.LogError(e.Message);
+        telemetryClient.TrackException(e);
+    }
+    telemetryClient.Flush();
 }).WithName("Init").WithOpenApi();
 
 app.MapGet("/recipes", () => {
