@@ -11,8 +11,8 @@ using Microsoft.OpenApi.Models;
 
 
 var builder = WebApplication.CreateBuilder(args);
-
 builder.Services.AddSignalR();
+
 Action<ApplicationInsightsServiceOptions> configureAppInsights = (options) =>
 {
     options.InstrumentationKey = builder.Configuration["APPINSIGHTS_INSTRUMENTATIONKEY"];
@@ -38,8 +38,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAllOrigins",
     builder =>
     {
-        builder.AllowAnyOrigin()
+        builder.WithOrigins("http://127.0.0.1", "https://witty-coast-0d35ec910.5.azurestaticapps.net/")
+        .AllowCredentials()
         .AllowAnyHeader()
+        .SetIsOriginAllowed((host) => true)
         .AllowAnyMethod();
     });
 });
@@ -83,7 +85,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
-app.MapHub<ChatHub>("/chatHub");
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -97,6 +99,7 @@ app.UseAuthorization();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAllOrigins");
+app.MapHub<ChatHub>("/chatHub");
 
 telemetryClient.TrackTrace("Starting Application");
 var summaries = new[]
