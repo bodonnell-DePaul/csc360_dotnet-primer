@@ -15,7 +15,7 @@ builder.Services.AddSignalR();
 
 Action<ApplicationInsightsServiceOptions> configureAppInsights = (options) =>
 {
-    options.InstrumentationKey = builder.Configuration["APPINSIGHTS_INSTRUMENTATIONKEY"];
+    options.InstrumentationKey = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
     options.EnableAdaptiveSampling = false;
     options.EnableQuickPulseMetricStream = true;
     options.EnableHeartbeat = true;

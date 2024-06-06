@@ -399,3 +399,5 @@ FodyWeavers.xsd
 RecipeDb.db
 appsettings.Development.json
 appsettings.Development.json
+appsettings.json
+appsettings.Development.json
